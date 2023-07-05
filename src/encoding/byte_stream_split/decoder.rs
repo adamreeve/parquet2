@@ -6,35 +6,38 @@ use crate::types::NativeType;
 /// # Implementation
 /// This struct does not allocate on the heap.
 #[derive(Debug)]
-pub struct Decoder<'a, T: NativeType> {
+pub struct Decoder<'a, T: NativeType, const S: usize> {
     values: &'a [u8],
-    buffer: Vec<u8>,
+    buffer: [u8; S],
     num_elements: usize,
     current: usize,
-    element_size: usize,
     element_type: PhantomData<T>
 }
 
-impl<'a, T: NativeType> Decoder<'a, T> {
+impl<'a, T: NativeType, const S: usize> Decoder<'a, T, S> {
     pub fn try_new(values: &'a [u8]) -> Result<Self, Error> {
         let element_size = std::mem::size_of::<T>();
+        if element_size != S {
+            return Err(Error::oos(format!(
+                "Element size {element_size} does not match the size type parameter {S}"
+            )));
+        }
         let values_size = values.len();
-        if values_size % element_size != 0 {
+        if values_size % S != 0 {
             return Err(Error::oos("Value array is not a multiple of element size"));
         }
-        let num_elements = values.len() / element_size;
+        let num_elements = values.len() / S;
         Ok(Self {
             values,
-            buffer: vec![0_u8; element_size],
+            buffer: [0_u8; S],
             num_elements,
             current: 0,
-            element_size,
             element_type: PhantomData
         })
     }
 }
 
-impl<'a, T: NativeType> Iterator for Decoder<'a, T> {
+impl<'a, T: NativeType, const S: usize> Iterator for Decoder<'a, T, S> {
     type Item = Result<T, Error>;
 
     #[inline]
@@ -43,7 +46,7 @@ impl<'a, T: NativeType> Iterator for Decoder<'a, T> {
             return None
         }
 
-        for n in 0..self.element_size {
+        for n in 0..S {
             self.buffer[n] = self.values[(self.num_elements * n) + self.current]
         }
 

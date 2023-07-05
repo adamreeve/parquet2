@@ -15,7 +15,7 @@ mod tests {
         let mut buffer = vec![];
         encode(&data, &mut buffer);
 
-        let mut decoder = Decoder::<f32>::try_new(&buffer)?;
+        let mut decoder = Decoder::<f32, { std::mem::size_of::<f32>() }>::try_new(&buffer)?;
         let values = decoder.by_ref().collect::<Result<Vec<_>, _>>()?;
 
         assert_eq!(data, values);
@@ -29,7 +29,7 @@ mod tests {
             0, 205, 0, 205, 0, 0, 204, 0, 204, 0, 128, 140, 0, 140, 128, 255, 191, 0, 63, 127
         ];
 
-        let mut decoder = Decoder::<f32>::try_new(&buffer)?;
+        let mut decoder = Decoder::<f32, { std::mem::size_of::<f32>() }>::try_new(&buffer)?;
         let values = decoder.by_ref().collect::<Result<Vec<_>, _>>()?;
 
         assert_eq!(values, vec![-f32::INFINITY, -1.1, 0.0, 1.1, f32::INFINITY]);
@@ -41,7 +41,7 @@ mod tests {
     fn fails_for_bad_size() -> Result<(), Error> {
         let buffer = vec![0; 12];
 
-        let result = Decoder::<f64>::try_new(&buffer);
+        let result = Decoder::<f64, { std::mem::size_of::<f64>() }>::try_new(&buffer);
         assert!(result.is_err());
 
         Ok(())
